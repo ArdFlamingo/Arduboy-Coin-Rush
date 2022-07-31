@@ -35,23 +35,32 @@ int coinY = 32;
 int coinwidth = 4;
 int coinheight = 5;
 int highscore = 0;
+uint32_t delayTarget;
 
 #define GAME_TITLE 0
 #define GAME_PLAY 1
 #define GAME_OVER 2
+#define GAME_DELAY 3
 
 void titlescreen() {
   arduboy.setCursor(0, 0);
   arduboy.print("Coin Rush!");
   arduboy.print("\n");
+  arduboy.print("\n");
+  arduboy.print("Highscore = ");
   arduboy.print(highscore);
+  arduboy.print("\n");
+  arduboy.print("\n");
+  arduboy.print("\n");
+  arduboy.print("A START");
+  Sprites::drawOverwrite(84, 20, titlecoin, 0);
 
   if (score > highscore) {
     highscore = score;
+    EEPROM.put(EEPROM_STORAGE_SPACE_START, highscore);
   }
   
   if (arduboy.justPressed(A_BUTTON)) {
-    gamestate = GAME_PLAY;
     enemyy = random(11, 54);
     enemyX = random(11, 113);
     enemyX2 = random(0, 119);
@@ -59,11 +68,12 @@ void titlescreen() {
     carx = 5;
     cary = 54; 
     score = 0;
-   
-  }
 
-  if (arduboy.justPressed(B_BUTTON)) {
-    EEPROM.put(EEPROM_STORAGE_SPACE_START, highscore);
+
+    delayTarget = (millis() + (3 * 1000));
+
+    gamestate = GAME_DELAY;
+   
   }
 
 }
@@ -213,8 +223,11 @@ void gameplay() {
 }
 
 void gameoverscreen() {
-  arduboy.setCursor(0, 0);
-  arduboy.print("game over screen");
+  arduboy.setCursor(34, 20);
+  arduboy.print("Game Over!");
+  arduboy.setCursor(21, 34);
+  arduboy.print("Your Score = ");
+  arduboy.print(score);
   
   if (arduboy.justPressed(A_BUTTON)) {
     gamestate = GAME_TITLE;
@@ -236,6 +249,11 @@ void gameloop() {
     case GAME_OVER:
       gameoverscreen();
       break;
+
+    case GAME_DELAY:
+      gameDelay();
+      break;
+      
       
   }
 }
@@ -245,6 +263,7 @@ void setup() {
   arduboy.setFrameRate(45);
   arduboy.initRandomSeed();
   arduboy.clear();
+  EEPROM.get(EEPROM_STORAGE_SPACE_START, highscore);
 
 }
 
@@ -258,4 +277,26 @@ void loop() {
   gameloop();
   arduboy.display();
 
+}
+
+void gameDelay() {
+  uint32_t current = millis();
+
+  arduboy.fillRect (enemyx, enemyy, enemysize, enemysize, WHITE);
+
+  arduboy.fillRect (enemyX, enemyY, enemySize, enemySize, WHITE);
+
+  arduboy.fillRect (enemyX2, enemyY2, enemySize2, enemySize2, WHITE);
+
+  Sprites::drawOverwrite (carx, cary, car, 0);
+
+
+  if (current >= delayTarget) {
+    gamestate = GAME_PLAY;
+  }
+
+  int remainingSeconds = ((delayTarget - current) / 1000);
+
+  arduboy.setCursor (122, 0);
+  arduboy.print (remainingSeconds);
 }
